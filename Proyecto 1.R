@@ -1,11 +1,9 @@
-pacman::p_load(tidyverse, Rtsne, ggdendro ,magick ,purrr ,mclust, spotifyr, knitr, ggjoy,data.table, fpc, dplyr, dendextend )#Importamos librerias
+pacman::p_load(tidyverse, Rtsne, ggdendro ,magick ,purrr ,mclust, spotifyr, knitr, ggjoy,data.table, fpc, dplyr, dendextend,gridExtra,cluster,factoextra ,httr)#Importamos librerias
 #Accedemos a spotify
 Sys.setenv(SPOTIFY_CLIENT_ID = '0401714112b14f72ae4e0fc355244ece')
 Sys.setenv(SPOTIFY_CLIENT_SECRET = '159cf2594c864acdb0424b819263cda5')
 access_token <- get_spotify_access_token()
 auth_token <- get_spotify_authorization_code(scope = scope)
-#user_id <- readline(prompt = "Ingrese su user id: ")
-#nombre_play = readline(prompt="Ingrese nombre la playlist a crear: ")
 Cancion_inicial = readline(prompt="Ingrese la cancion para buscar: ") #pedimos la cancion para buscarla en la API
 Busqueda = search_spotify(Cancion_inicial, type = c("track"),market = NULL, limit = 20, offset = 0, include_external = NULL,authorization = get_spotify_access_token(),include_meta_info = FALSE) #busqueda de spotifyr
 Filtrada = subset(Busqueda, select= c("name", "album.name", "uri", "id"))#busqueda filtrada
@@ -64,7 +62,45 @@ features_filtrado$analysis_url <- NULL
 features_filtrado$mode <- NULL
 features_filtrado$track_href <- NULL
 features_filtrado$time_signature <- NULL
-names(features_filtrado)[12]<- 'track_uri'
+names(features_filtrado)[10]<- 'track_uri'
 #--------------------------------------------
 beats_con_cancion <-rbind(beats,features_filtrado) #aca anadimos la cancion de la API a la base de datos
+beats_con_cancion <- unique(beats_con_cancion,by="track_uri") #hacemos unicos cada dato para que no hayan redundancias denuevo
 rownames(beats_con_cancion)<- beats_con_cancion$track_uri #ponemos los uri como el identificador 
+beats_escalados <-scale(beats_con_cancion[,1:9])#escalamos 
+#iteramos kmeans
+kmeans4 <- kmeans(beats_escalados, centers = 4, nstart = 25)#usamos con 4 centroides ya que asi quedan superpuestos pero "separa" los tipos de canciones en 4 tipos, que no es optimo pero sirve para la tarea
+canciones_por_cluster = order(kmeans4$cluster)#ordenamos las canciones por clusters
+data_cluster = data.frame(beats_con_cancion$track_uri[canciones_por_cluster],kmeans4$cluster[canciones_por_cluster])
+cluster_seleccionado = data_cluster[data_cluster$beats_con_cancion.track_uri.canciones_por_cluster.== uri_cancion,2]
+playlist = data_cluster[data_cluster$kmeans4.cluster.canciones_por_cluster.==cluster_seleccionado, ] 
+#Creamos playlist entre 30 y 50 canciones para que sea aproximadamente unas 3 horas
+playlist_final_df = playlist[sample(nrow(playlist),40), ]
+playlist_final_df[nrow(playlist_final_df)+1,]= c(uri_cancion,cluster_seleccionado)
+#--------------------------------------
+#escogimos 4 clusters ya que con 2 quedaban muy separados y con 3 igual se superponian, por ende decidimos utilizar 4 ya que asi teniamos separados en 4 grupos las canciones y aunque dependan de muchisimas variables podriamos obtener literal una radio de la cancion al tener canciones muy parecidas con canciones quzias similares, dandole una sensacion de "Radio" que es una funcion integrada de spotify
+#volvemos con spotifyr para crea la playlist
+#usamos nuestro nombre de usuario
+nombre = readline(prompt="Ingrese el nombre de la playlist ")
+playlist = create_playlist('0401714112b14f72ae4e0fc355244ece',nombre, public = TRUE, collaborative = FALSE,description = NULL, authorization = get_spotify_authorization_code())
+#ingresamos las canciones
+playlist_a_ingresar = as.character(playlist_final_df[,1])
+uris = paste0('\"',playlist_a_ingresar, collapse = '\",', recycle0 = TRUE)
+preData = '{
+  "uris": [
+'
+postData ='"
+  ],
+  "position": 0
+}'
+actualData <- paste0(preData,uris,postData)
+actualData <- paste0(actualData, collapse = '\n')
+urlapi = paste("https://api.spotify.com/v1/playlists/",playlist$id,"/tracks",sep = "")
+POST(url = urlapi,config(content_type_json(),token = get_spotify_authorization_code()),body = actualData)
+
+
+
+
+                           
+
+
