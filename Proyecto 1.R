@@ -70,7 +70,7 @@ beats_con_cancion <- unique(beats_con_cancion,by="track_uri") #hacemos unicos ca
 rownames(beats_con_cancion)<- beats_con_cancion$track_uri #ponemos los uri como el identificador 
 beats_escalados <-scale(beats_con_cancion[,1:9])#escalamos 
 #iteramos kmeans
-kmeans4 <- kmeans(beats_escalados, centers = 4, nstart = 25)#usamos con 4 centroides ya que asi quedan superpuestos pero "separa" los tipos de canciones en 4 tipos, que no es optimo pero sirve para la tarea
+kmeans4 <- kmeans(beats_escalados, centers = 4, nstart = 30)#usamos con 4 centroides ya que asi quedan superpuestos pero "separa" los tipos de canciones en 4 tipos, que no es optimo pero sirve para la tarea
 canciones_por_cluster = order(kmeans4$cluster)#ordenamos las canciones por clusters
 data_cluster = data.frame(beats_con_cancion$track_uri[canciones_por_cluster],kmeans4$cluster[canciones_por_cluster])
 cluster_seleccionado = data_cluster[data_cluster$beats_con_cancion.track_uri.canciones_por_cluster.== uri_cancion,2]
