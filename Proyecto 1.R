@@ -1,7 +1,7 @@
 pacman::p_load(tidyverse, Rtsne, ggdendro ,magick ,purrr ,mclust, spotifyr, knitr, ggjoy,data.table, fpc, dplyr, dendextend,gridExtra,cluster,factoextra ,httr)#Importamos librerias
 #Accedemos a spotify
 Sys.setenv(SPOTIFY_CLIENT_ID = '0401714112b14f72ae4e0fc355244ece')
-Sys.setenv(SPOTIFY_CLIENT_SECRET = '159cf2594c864acdb0424b819263cda5')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = 'f292a4b3c8014d8b9e248f2f325f83cb')
 access_token <- get_spotify_access_token()
 auth_token <- get_spotify_authorization_code(scope = scope)
 Cancion_inicial = readline(prompt="Ingrese la cancion para buscar: ") #pedimos la cancion para buscarla en la API
@@ -82,7 +82,7 @@ playlist_final_df[nrow(playlist_final_df)+1,]= c(uri_cancion,cluster_seleccionad
 #volvemos con spotifyr para crea la playlist
 #usamos nuestro nombre de usuario
 nombre = readline(prompt="Ingrese el nombre de la playlist ")
-playlist = create_playlist('0401714112b14f72ae4e0fc355244ece',nombre, public = TRUE, collaborative = FALSE,description = NULL, authorization = get_spotify_authorization_code())
+playlist_final = create_playlist('0401714112b14f72ae4e0fc355244ece',nombre, public = TRUE, collaborative = FALSE,description = NULL, authorization = get_spotify_authorization_code())
 #ingresamos las canciones
 playlist_a_ingresar = as.character(playlist_final_df[,1])
 uris = paste0('\"',playlist_a_ingresar, collapse = '\",', recycle0 = TRUE)
@@ -95,7 +95,7 @@ postData ='"
 }'
 actualData <- paste0(preData,uris,postData)
 actualData <- paste0(actualData, collapse = '\n')
-urlapi = paste("https://api.spotify.com/v1/playlists/",playlist$id,"/tracks",sep = "")
+urlapi = paste("https://api.spotify.com/v1/playlists/",playlist_final$id,"/tracks",sep = "")
 POST(url = urlapi,config(content_type_json(),token = get_spotify_authorization_code()),body = actualData)
 
 
